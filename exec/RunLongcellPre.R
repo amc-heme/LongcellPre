@@ -16,7 +16,7 @@ argparse = function(){
   ##### sequencing related args
   p$add_argument("-f", "--fastq", help="The path for the input fastq file",required =TRUE)
   p$add_argument("-b", "--barcode", help="The path for the cell barcode whitelist",required =TRUE)
-  p$add_argument("-t", "--toolkit", help="The toolkit used in sequencing, should be 5 or 3",choices = c("5","3"),required =TRUE)
+  p$add_argument("-t", "--toolkit", help="The toolkit used in sequencing, should be 5, 3, or 3lax",choices = c("5","3","3lax"),required =TRUE)
   p$add_argument("-q", "--protocol", help="The sequencing protocol, ex. '10X', 'VISIUM', 'Curio'",
                  choices = c("10X","VISIUM","Curio","other"),default = "10X")
 
