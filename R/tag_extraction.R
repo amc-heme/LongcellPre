@@ -1,7 +1,7 @@
 #' @title seq_config
 #' @description Preset parameters for different sequencing protocol
 #' @param protocol The sequence protocol
-#' @param toolkit The kit to build the library, should be 5 or 3
+#' @param toolkit The kit to build the library, should be 5, 3, or "3lax"
 #' @param adapter The sequence of the adapter which is aside the cell barcode
 #' @param left_flank,right_flank The length of the left/right part aside the adapter to be extracted
 #' @param drop_adapter A flag to indicate if the adapter region should be removed from the tag region.
@@ -15,13 +15,17 @@ seq_config = function(protocol,toolkit,
       adapter = "TTTCTTATATGGG"
       UMI_len = 10
     }
+    else if(toolkit == "3lax"){
+      adapter = "GCGTCGTG"
+      UMI_len = 12
+    }
     else{
       adapter = "GCGTCGTGTAG"
       UMI_len = 12
     }
     left_flank = 55
     right_flank = -10
-    drop_adapter =FALSE
+    drop_adapter = FALSE
     barcode_len = 16
 
   }
@@ -34,7 +38,7 @@ seq_config = function(protocol,toolkit,
     }
     left_flank = 55
     right_flank = -10
-    drop_adapter =FALSE
+    drop_adapter = FALSE
     barcode_len = 16
     UMI_len = 12
   }
@@ -42,7 +46,7 @@ seq_config = function(protocol,toolkit,
     adapter = "TCTCGGGAACGCTGAAGA"
     left_flank = 25
     right_flank = 25
-    drop_adapter =TRUE
+    drop_adapter = TRUE
     barcode_len = 14
     UMI_len = 9
   }
@@ -70,10 +74,13 @@ seq_config = function(protocol,toolkit,
 #' @param fastq_path The path of the input fastq
 #' @param out_name The path for the polished fastq
 #' @param barcode_path The path for the barcode whitelist
-#' @param toolkit The kit to build the library, should be 5 or 3
+#' @param toolkit The kit to build the library, should be 5, 3, or "3lax" (10X 3-prime with
+#'   shortened 8 bp adapter "GCGTCGTG", window = 7, step = 1)
 #' @param adapter The sequence of the adapter which is aside the cell barcode
-#' @param window The window size to search the substring of adapter in the read
-#' @param step The step size to search the substring of adapter in the read
+#' @param window The window size to search the substring of adapter in the read.
+#'   Defaults to 7 for toolkit "3lax", 10 otherwise.
+#' @param step The step size to search the substring of adapter in the read.
+#'   Defaults to 1 for toolkit "3lax", 2 otherwise.
 #' @param left_flank,right_flank The length of the left/right part aside the adapter to be extracted
 #' @param drop_adapter A flag to indicate if the adapter region should be removed from the tag region.
 #' @param polyA_bin The window size to search for polyA.
@@ -109,7 +116,7 @@ seq_config = function(protocol,toolkit,
 extractTagBc = function(fastq_path,barcode_path,out_name,
                         # parameters to extract the tag region
                         toolkit,protocol = "10X", adapter = NULL,
-                        window = 10,step = 2,
+                        window = NULL,step = NULL,
                         left_flank = 0, right_flank = 0, drop_adapter = FALSE,
                         polyA_bin = 20,polyA_base_count = 15,polyA_len = 10,
                         # parameters for barcode match
@@ -127,8 +134,15 @@ extractTagBc = function(fastq_path,barcode_path,out_name,
   barcode_len = config$barcode_len
   UMI_len = config$UMI_len
 
+  # resolve window/step defaults based on toolkit
+  if(is.null(window)) window = if(toolkit == "3lax") 7L else 10L
+  if(is.null(step))   step   = if(toolkit == "3lax") 1L else  2L
+
+  # normalise toolkit to integer for the C++ layer (must be 3 or 5)
+  toolkit_int = if(toolkit == "3lax") 3L else as.integer(toolkit)
+
   reads = extractTagFastq(fastq_path,out_name,
-                          config$adapter,toolkit,window,step,
+                          config$adapter,toolkit_int,window,step,
                           config$left_flank,config$right_flank,config$drop_adapter,
                           polyA_bin,polyA_base_count,polyA_len)
 
@@ -139,11 +153,11 @@ extractTagBc = function(fastq_path,barcode_path,out_name,
   barcode = read.table(barcode_path)[,1]
   barcode = substr(barcode,1,barcode_len)
 
-  if(toolkit == 5){
+  if(toolkit_int == 5L){
     reads$tag = stringi::stri_reverse(reads$tag)
     barcode = stringi::stri_reverse(barcode)
   }
-  else if(toolkit == 3){
+  else if(toolkit_int == 3L){
     barcode = spgs::reverseComplement(barcode,case = "upper")
   }
 
@@ -153,10 +167,10 @@ extractTagBc = function(fastq_path,barcode_path,out_name,
                     edit_thresh = edit_thresh,mean_edit_thresh = mean_edit_thresh,
                     UMI_len = UMI_len,UMI_flank = UMI_flank,cores = cores)
 
-  if(toolkit == 5){
+  if(toolkit_int == 5L){
     bc$barcode = stringi::stri_reverse(bc$barcode)
   }
-  else if(toolkit == 3){
+  else if(toolkit_int == 3L){
     bc$barcode = spgs::reverseComplement(bc$barcode,case = "upper")
   }
 
