@@ -1,6 +1,10 @@
 #!/usr/bin/env Rscript
 options(future.globals.maxSize = 24 * 1024^3)
 library(LongcellPre)
+lcp_imports <- parent.env(asNamespace("LongcellPre"))
+unlockBinding("makeTxDbFromGFF", lcp_imports)
+assign("makeTxDbFromGFF", txdbmaker::makeTxDbFromGFF, envir = lcp_imports)
+lockBinding("makeTxDbFromGFF", lcp_imports)
 library(argparse)
 
 
