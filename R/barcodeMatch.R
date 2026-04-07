@@ -64,7 +64,8 @@ BarcodeFilter = function(data,mean_edit_thresh = 1.5){
 #'
 #' @description BarcodeMatch with parallelization
 #' @details BarcodeMatch for large dataset which is paralleled by future.apply.
-#' Large data will be split according to cores.
+#' Large data will be split according to cores. The barcode k-mer index is built
+#' once before the parallel loop and passed to each worker to avoid redundant work.
 #'
 #' @inheritParams BarcodeMatchUnit
 #' @inheritParams BarcodeFilter
@@ -72,8 +73,7 @@ BarcodeFilter = function(data,mean_edit_thresh = 1.5){
 #' @import Longcellsrc
 #' @importFrom future.apply future_lapply
 #' @importFrom parallel detectCores
-#' @importFrom magrittr %>%
-#' @importFrom dplyr mutate
+#' @importFrom data.table rbindlist
 #' @export
 BarcodeMatch = function(seq, barcodes,
                         mu = 20, sigma = 10, sigma_start = 10,
@@ -82,22 +82,31 @@ BarcodeMatch = function(seq, barcodes,
                         UMI_len = 10,UMI_flank = 1,cores = 1){
   n = length(seq)
 
-  seq = as.data.frame(cbind(1:length(seq),seq))
-  colnames(seq) = c("id","seq")
-  seq = seq %>% mutate(is = as.numeric(id))
+  # P9: avoid cbind() coercion to character; use data.frame() directly
+  seq = data.frame(id = seq_along(seq), seq = seq, stringsAsFactors = FALSE)
 
-  seq_split <- dataSplit(seq,cores)
+  seq_split <- dataSplit(seq, cores)
 
-  bm = future_lapply(seq_split,function(x){
-    out = barcodeMatch(x$seq, barcodes,
-                       mu, sigma, sigma_start, k, batch,
-                       top, cos_thresh, alpha, edit_thresh,
-                       UMI_len, UMI_flank)
+  # P6(R): build the barcode k-mer index once, share across all workers
+  bc_index = Longcellsrc::buildBarcodeIndex(barcodes, k)
+
+  bm = future_lapply(seq_split, function(x){
+    out = Longcellsrc::barcodeMatch(x$seq, barcodes, bc_index,
+                                    mu, sigma, sigma_start, k, batch,
+                                    top, cos_thresh, alpha, edit_thresh,
+                                    UMI_len, UMI_flank)
     out$id = x$id[out$id + 1]
     return(out)
-  },future.packages = c("Longcellsrc"),future.seed=TRUE)
+  }, future.globals = list(barcodes = barcodes, bc_index = bc_index,
+                            mu = mu, sigma = sigma, sigma_start = sigma_start,
+                            k = k, batch = batch, top = top,
+                            cos_thresh = cos_thresh, alpha = alpha,
+                            edit_thresh = edit_thresh,
+                            UMI_len = UMI_len, UMI_flank = UMI_flank),
+     future.packages = c("Longcellsrc"), future.seed = TRUE)
 
-  bm = as.data.frame(do.call(rbind,bm))
+  # P8: data.table::rbindlist() is faster than do.call(rbind, ...)
+  bm = as.data.frame(data.table::rbindlist(bm))
   cat(nrow(bm)," out of ",n, "reads are identified with a vaild cell barcode.\n")
   #bm = bm[,-which(colnames(bm) == "softclip")]
 

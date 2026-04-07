@@ -387,6 +387,7 @@ reads_extract_bc = function(fastq_path,barcode_path,
 #' @import Longcellsrc
 #' @importFrom future.apply future_lapply
 #' @importFrom peakRAM peakRAM
+#' @importFrom data.table rbindlist
 #' @export
 #'
 
@@ -444,7 +445,7 @@ umi_count_parallel = function(data,qual,dir,gene_bed,
     cat(log,"\n")
     print(mem[,2:4])
 
-    count = as.data.frame(do.call(rbind,count))
+    count = as.data.frame(data.table::rbindlist(count))
     count = count %>% dplyr::select(cell,gene,isoform,count,polyA)
     saveResult(count,file.path(dir,"iso_count.txt"))
   }

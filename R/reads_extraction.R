@@ -158,13 +158,15 @@ gene_reads_extraction = function(bamFile,gene_bed,genome,
 #'
 #' @description extract reads for multiple genes from the bam given the gene bed annotation
 #' @details extract reads information for a gene from the bam given the gene bed annotation, including
-#' exon bins and polyA existence
+#' exon bins and polyA existence. The gene_bed is pre-split by gene before the parallel loop so that
+#' each worker receives only its own subset rather than filtering the full data frame.
 #'
 #' @inheritParams gene_reads_extraction
 #' @param cores The number of cores for parallization
 #' @importFrom magrittr %>%
 #' @importFrom dplyr filter
 #' @importFrom future.apply future_lapply
+#' @importFrom data.table rbindlist
 #' @return A dataframe including the exons, and polyA existence, each row is a read.
 #' @export
 #'
@@ -174,28 +176,35 @@ reads_extraction = function(bam_path,gene_bed,genome,toolkit = 5,
                                  splice_site_bin = 2,
                                  mid_polyA_bin = 20,
                                  mid_polyA_thresh = 0.4){
-  genes = unique(gene_bed$gene)
+  # P7: pre-split gene_bed by gene so each worker gets its slice without filtering
+  gene_bed_list = split(gene_bed, gene_bed$gene)
+  genes = names(gene_bed_list)
+
   bamFile <- BamFile(bam_path)
 
-  reads = future_lapply(genes,function(i){
-    sub_bed = gene_bed %>% filter(gene == i)
-    #start_time <- Sys.time()
-    sub_reads = gene_reads_extraction(bamFile = bamFile,gene_bed = sub_bed,
+  reads = future_lapply(genes, function(i){
+    sub_bed = gene_bed_list[[i]]
+    sub_reads = gene_reads_extraction(bamFile = bamFile, gene_bed = sub_bed,
                                       genome = genome,
-                                      toolkit = toolkit,map_qual = map_qual,
+                                      toolkit = toolkit, map_qual = map_qual,
                                       end_flank = end_flank,
                                       splice_site_bin = splice_site_bin,
                                       mid_polyA_bin = mid_polyA_bin,
                                       mid_polyA_thresh = mid_polyA_thresh)
-    #end_time <- Sys.time()
-    #print(paste(i,":",end_time - start_time))
     if(nrow(sub_reads) == 0){
       return(NULL)
     }
     sub_reads$gene = i
     return(sub_reads)
-  },future.packages = c("Longcellsrc"),future.seed=TRUE)
+  }, future.globals = list(gene_bed_list = gene_bed_list, genome = genome,
+                            bamFile = bamFile, toolkit = toolkit,
+                            map_qual = map_qual, end_flank = end_flank,
+                            splice_site_bin = splice_site_bin,
+                            mid_polyA_bin = mid_polyA_bin,
+                            mid_polyA_thresh = mid_polyA_thresh),
+     future.packages = c("Longcellsrc"), future.seed = TRUE)
 
-  reads = as.data.frame(do.call(rbind,reads))
+  # P8: data.table::rbindlist() is faster than do.call(rbind, ...)
+  reads = as.data.frame(data.table::rbindlist(reads))
   return(reads)
 }

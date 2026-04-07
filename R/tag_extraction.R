@@ -67,9 +67,12 @@ seq_config = function(protocol,toolkit,
 
 #' @title extractTagBc
 #'
-#' @description Extract the tag region and identify cell barcode in the ta region
-#' @details Extract the tag region for each reads and trim the tag region out to generate a
-#' polished read. Then the tag region is used to identify cell barcode an UMI.
+#' @description Extract the tag region and identify cell barcode in the tag region
+#' @details Extract the tag region for each read and trim it out to generate a polished read.
+#' Then the tag region is used to identify cell barcode and UMI.
+#' When cores > 1 the input FASTQ is split into chunks via \code{fastqSplit}, each chunk is
+#' processed in parallel via \code{future_lapply}, and the polished FASTQs are concatenated
+#' with \code{cat} before the barcode-matching step.
 #'
 #' @param fastq_path The path of the input fastq
 #' @param out_name The path for the polished fastq
@@ -96,11 +99,13 @@ seq_config = function(protocol,toolkit,
 #' the tag region, only barcode with cosine similarity larger than the thresh can be preserved as
 #' candidate barcodes.
 #' @param alpha The size of the confidence interval for the start position of cell barcode alignment
-#' @param edit_thresh The maximum threshold for the edit distance of the barcode alignment, alighment with
+#' @param edit_thresh The maximum threshold for the edit distance of the barcode alignment, alignment with
 #' edit distance over the threshold would be filtered out.
 #' @param barcode_len,UMI_len The length of the cell barcode/UMI
 #' @param flank The length of flank when extract UMI, which is used to be tolerant of indels and dels.
-#' @param cores The number of cores to use for parallization
+#' @param fastq_batch The number of reads per FASTQ chunk when splitting for parallel tag extraction.
+#'   Defaults to 500000L.
+#' @param cores The number of cores to use for parallelization
 #'
 #' @importFrom magrittr %>%
 #' @importFrom dplyr select
@@ -111,26 +116,28 @@ seq_config = function(protocol,toolkit,
 #' @importFrom future multisession
 #' @importFrom future multicore
 #' @importFrom future.apply future_lapply
+#' @importFrom data.table rbindlist
 #' @export
 #'
-extractTagBc = function(fastq_path,barcode_path,out_name,
+extractTagBc = function(fastq_path, barcode_path, out_name,
                         # parameters to extract the tag region
-                        toolkit,protocol = "10X", adapter = NULL,
-                        window = NULL,step = NULL,
+                        toolkit, protocol = "10X", adapter = NULL,
+                        window = NULL, step = NULL,
                         left_flank = 0, right_flank = 0, drop_adapter = FALSE,
-                        polyA_bin = 20,polyA_base_count = 15,polyA_len = 10,
+                        polyA_bin = 20, polyA_base_count = 15, polyA_len = 10,
                         # parameters for barcode match
-                        barcode_len = 16,mu = 20, sigma = 10, k = 6, batch = 100,
+                        barcode_len = 16, mu = 20, sigma = 10, k = 6, batch = 100,
                         top = 5, cos_thresh = 0.25, alpha = 0.05,
-                        edit_thresh = 3,mean_edit_thresh = 1.5,
+                        edit_thresh = 3, mean_edit_thresh = 1.5,
                         UMI_len = 10, UMI_flank = 1,
                         # parameter for parallel
+                        fastq_batch = 500000L,
                         cores = 1){
 
-  config = seq_config(protocol,toolkit,
+  config = seq_config(protocol, toolkit,
                       adapter,
-                      left_flank,right_flank,drop_adapter,
-                      barcode_len,UMI_len)
+                      left_flank, right_flank, drop_adapter,
+                      barcode_len, UMI_len)
   barcode_len = config$barcode_len
   UMI_len = config$UMI_len
 
@@ -141,10 +148,57 @@ extractTagBc = function(fastq_path,barcode_path,out_name,
   # normalise toolkit to integer for the C++ layer (must be 3 or 5)
   toolkit_int = if(toolkit == "3lax") 3L else as.integer(toolkit)
 
-  reads = extractTagFastq(fastq_path,out_name,
-                          config$adapter,toolkit_int,window,step,
-                          config$left_flank,config$right_flank,config$drop_adapter,
-                          polyA_bin,polyA_base_count,polyA_len)
+  # P10: parallel FASTQ tag extraction
+  if(cores > 1L){
+    # Split the FASTQ into chunks; each chunk becomes a separate .fq.gz file
+    split_dir = tempfile("longcell_split_")
+    dir.create(split_dir)
+    on.exit(unlink(split_dir, recursive = TRUE), add = TRUE)
+
+    Longcellsrc::fastqSplit(fastq_path, split_dir, fastq_batch)
+
+    chunk_files = sort(list.files(split_dir, pattern = "\\.fq\\.gz$", full.names = TRUE))
+    if(length(chunk_files) == 0){
+      stop("fastqSplit produced no output files. Check that fastq_path is readable.")
+    }
+
+    # Process each chunk in parallel; each worker writes its own polished FASTQ
+    chunk_out_files = file.path(split_dir, paste0("out_", seq_along(chunk_files), ".fq.gz"))
+
+    tag_list = future_lapply(
+      seq_along(chunk_files),
+      function(i){
+        Longcellsrc::extractTagFastq(chunk_files[i], chunk_out_files[i],
+                                     config$adapter, toolkit_int, window, step,
+                                     config$left_flank, config$right_flank, config$drop_adapter,
+                                     polyA_bin, polyA_base_count, polyA_len)
+      },
+      future.globals = list(chunk_files = chunk_files,
+                            chunk_out_files = chunk_out_files,
+                            config = config,
+                            toolkit_int = toolkit_int,
+                            window = window, step = step,
+                            polyA_bin = polyA_bin,
+                            polyA_base_count = polyA_base_count,
+                            polyA_len = polyA_len),
+      future.packages = c("Longcellsrc"),
+      future.seed = TRUE
+    )
+
+    # Concatenate polished FASTQ chunks into the final output file
+    produced_chunks = chunk_out_files[file.exists(chunk_out_files)]
+    if(length(produced_chunks) > 0){
+      system(paste("cat", paste(shQuote(produced_chunks), collapse = " "),
+                   ">", shQuote(out_name)))
+    }
+
+    reads = as.data.frame(data.table::rbindlist(tag_list))
+  } else {
+    reads = Longcellsrc::extractTagFastq(fastq_path, out_name,
+                                         config$adapter, toolkit_int, window, step,
+                                         config$left_flank, config$right_flank, config$drop_adapter,
+                                         polyA_bin, polyA_base_count, polyA_len)
+  }
 
   if(length(reads) == 0 || nrow(reads) == 0){
     stop("Please check if your adapter sequence is correct!")
