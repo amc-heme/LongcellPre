@@ -104,7 +104,7 @@ seq_config = function(protocol,toolkit,
 #' @param barcode_len,UMI_len The length of the cell barcode/UMI
 #' @param flank The length of flank when extract UMI, which is used to be tolerant of indels and dels.
 #' @param fastq_batch The number of reads per FASTQ chunk when splitting for parallel tag extraction.
-#'   Defaults to 500000L.
+#'   Defaults to 10000000L. Set to cores * fastq_batch >= total_reads to minimise I/O round trips.
 #' @param cores The number of cores to use for parallelization
 #'
 #' @importFrom magrittr %>%
@@ -131,7 +131,7 @@ extractTagBc = function(fastq_path, barcode_path, out_name,
                         edit_thresh = 3, mean_edit_thresh = 1.5,
                         UMI_len = 10, UMI_flank = 1,
                         # parameter for parallel
-                        fastq_batch = 500000L,
+                        fastq_batch = 10000000L,
                         cores = 1){
 
   config = seq_config(protocol, toolkit,
