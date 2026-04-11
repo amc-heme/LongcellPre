@@ -260,6 +260,12 @@ adapter_dis = function(data){
             filter(edit == 0) %>%
             filter(nchar(adapter) == len)
 
+  if(nrow(adapter) == 0){
+    warning("No reads with edit distance 0 and valid adapter length; ",
+            "skipping adapter quality metric.")
+    return(data.frame(needle = integer(0), count = integer(0)))
+  }
+
   adapter_count = table(adapter$adapter)
   adapter_seq = names(adapter_count)[adapter_count == max(adapter_count)][1]
 
