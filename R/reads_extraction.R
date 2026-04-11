@@ -128,6 +128,8 @@ gene_reads_extraction = function(bamFile,gene_bed,genome,
   #cat("There are ",length(as.character(bam$seq))," sequence mapped!\n")
 
   #start_time <- Sys.time()
+  # normalise toolkit to integer for the C++ layer (must be 3 or 5)
+  toolkit = if(toolkit == "3lax") 3L else as.integer(toolkit)
   reads = extractReads(as.character(bam$seq),bam$cigar,bam$pos,
                        exon_bin,strand,toolkit,
                        end_flank,splice_site_bin)
