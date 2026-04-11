@@ -263,10 +263,11 @@ adapter_dis = function(data){
   adapter_count = table(adapter$adapter)
   adapter_seq = names(adapter_count)[adapter_count == max(adapter_count)][1]
 
-  adapter_dis = cbind(needleScores(adapter_seq,names(adapter_count)),adapter_count)
-  adapter_dis = as.data.frame(adapter_dis)
-  colnames(adapter_dis) = c("needle","count")
-  adapter_dis = adapter_dis %>% group_by(needle) %>% summarise(count = sum(count))
+  adapter_dis = data.frame(
+    needle = needleScores(adapter_seq, names(adapter_count)),
+    count = as.integer(adapter_count)
+  )
+  adapter_dis = adapter_dis %>% group_by(needle) %>% summarise(count = sum(count), .groups = "drop")
 
   return(adapter_dis)
 }
