@@ -1,9 +1,9 @@
 #' @title load_genome
 #' @description Load the genome from BSgenome given the genome name
-#' @param genome_name The name of the genome, can be abbreviations for some commonly used genomes like "hg38"
+#' @param genome_name The name of the genome, can be abbreviations for some
+#'   commonly used genomes like "hg38"
 #' @importFrom BSgenome available.genomes
 #' @importFrom BSgenome getBSgenome
-#' @importFrom BiocManager install
 #' @return A BSgenome object
 load_genome <- function(genome_name) {
   genome_list = BSgenome::available.genomes()
@@ -34,16 +34,15 @@ load_genome <- function(genome_name) {
     genome_package <- paste0(organism_prefix, genome_name)
   }
 
-  # Check if the package is installed
+  # Fail fast if the BSgenome package is not installed — never attempt to
+  # install packages at runtime, which is fragile on HPC compute nodes
+  # (no internet, read-only library paths) and non-reproducible.
   if (!requireNamespace(genome_package, quietly = TRUE)) {
-    message(paste0("The genome package '", genome_package, "' is not installed. Installing now..."))
-
-    # Install the package
-    tryCatch({
-      BiocManager::install(genome_package)
-    }, error = function(e) {
-      stop(paste("Failed to install genome package:", genome_package, "\nError:", e$message))
-    })
+    stop(
+      "The BSgenome package '", genome_package, "' is not installed.\n",
+      "  Install it before running the pipeline with:\n",
+      "    BiocManager::install(\"", genome_package, "\")"
+    )
   }
 
   # Load the genome using getBSgenome()

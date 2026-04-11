@@ -661,6 +661,10 @@ RunLongcellPre = function(fastq_path,barcode_path,
   }
   cat("LongcellPre would be applied with ",cores," threads in ",mode," mode.\n")
 
+  # pre-flight: verify the BSgenome package is installed before any heavy
+  # computation so the pipeline fails fast rather than hours into a run
+  load_genome(genome_name)
+
   # barcode match and reads extraction
   neceParam = list(fastq_path = fastq_path,barcode_path = barcode_path,
                    gene_bed = gene_bed,adapter = adapter,
