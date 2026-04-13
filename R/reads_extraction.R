@@ -95,7 +95,7 @@ mid_polyA_filter = function(endsites, genome,chr,strand,bin = 20,thresh = 0.4){
 #' @inheritParams readBam
 #' @inheritParams mid_polyA_filter
 #' @param gene_bed The gene bed annotation, should be a dataframe
-#' @param toolkit The position of cell barcode and UMI, should only be 5 or 3 end for a library
+#' @param toolkit The position of cell barcode and UMI, should be 5, 3, or "3lax" (3-prime with shortened adapter)
 #' @param end_flank The maximum threshold for a read to exceed the end of the gene region annotation
 #' @param splice_site_bin The bin size to correct slice sites given the splice sites annotation from the gene bed
 #' @param mid_polyA_bin The window size to search for A

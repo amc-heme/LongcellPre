@@ -21,7 +21,7 @@ reads_extraction(
 
 \item{genome}{The genome annotation from BSgenome.}
 
-\item{toolkit}{The position of cell barcode and UMI, should only be 5 or 3 end for a library}
+\item{toolkit}{The position of cell barcode and UMI, should be 5, 3, or "3lax" (3-prime with shortened adapter)}
 
 \item{map_qual}{The minimum mapping quality of the reads to be extracted}
 
@@ -43,5 +43,6 @@ extract reads for multiple genes from the bam given the gene bed annotation
 }
 \details{
 extract reads information for a gene from the bam given the gene bed annotation, including
-exon bins and polyA existence
+exon bins and polyA existence. The gene_bed is pre-split by gene before the parallel loop so that
+each worker receives only its own subset rather than filtering the full data frame.
 }

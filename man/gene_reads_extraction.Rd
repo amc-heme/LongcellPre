@@ -23,7 +23,7 @@ gene_reads_extraction(
 
 \item{genome}{The genome annotation from BSgenome.}
 
-\item{toolkit}{The position of cell barcode and UMI, should only be 5 or 3 end for a library}
+\item{toolkit}{The position of cell barcode and UMI, should be 5, 3, or "3lax" (3-prime with shortened adapter)}
 
 \item{map_qual}{The minimum mapping quality of the reads to be extracted}
 

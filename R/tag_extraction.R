@@ -78,10 +78,10 @@ seq_config = function(protocol,toolkit,
 #' @param out_name The path for the polished fastq
 #' @param barcode_path The path for the barcode whitelist
 #' @param toolkit The kit to build the library, should be 5, 3, or "3lax" (10X 3-prime with
-#'   shortened 8 bp adapter "GCGTCGTG", window = 7, step = 1)
+#'   shortened 8 bp adapter "GCGTCGTG", window = 6, step = 1)
 #' @param adapter The sequence of the adapter which is aside the cell barcode
 #' @param window The window size to search the substring of adapter in the read.
-#'   Defaults to 7 for toolkit "3lax", 10 otherwise.
+#'   Defaults to 6 for toolkit "3lax", 10 otherwise.
 #' @param step The step size to search the substring of adapter in the read.
 #'   Defaults to 1 for toolkit "3lax", 2 otherwise.
 #' @param left_flank,right_flank The length of the left/right part aside the adapter to be extracted
@@ -142,7 +142,7 @@ extractTagBc = function(fastq_path, barcode_path, out_name,
   UMI_len = config$UMI_len
 
   # resolve window/step defaults based on toolkit
-  if(is.null(window)) window = if(toolkit == "3lax") 7L else 10L
+  if(is.null(window)) window = if(toolkit == "3lax") 6L else 10L
   if(is.null(step))   step   = if(toolkit == "3lax") 1L else  2L
 
   # normalise toolkit to integer for the C++ layer (must be 3 or 5)

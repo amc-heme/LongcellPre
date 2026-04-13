@@ -30,7 +30,8 @@ RunLongcellPre(
 
 \item{barcode_path}{The path for the barcode whitelist}
 
-\item{toolkit}{The kit to build the library, should be 5 or 3}
+\item{toolkit}{The kit to build the library, should be 5, 3, or "3lax" (10X 3-prime with
+shortened 8 bp adapter "GCGTCGTG", window = 6, step = 1)}
 
 \item{genome_path}{The filename of the reference genome}
 
@@ -38,7 +39,7 @@ RunLongcellPre(
 
 \item{work_dir}{The folder to store intermediate files and output}
 
-\item{cores}{The number of cores to use for parallization}
+\item{cores}{The number of cores to use for parallelization}
 
 \item{minimap2}{The path of the minimap2}
 

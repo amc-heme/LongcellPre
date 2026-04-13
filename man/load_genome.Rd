@@ -7,7 +7,8 @@
 load_genome(genome_name)
 }
 \arguments{
-\item{genome_name}{The name of the genome, can be abbreviations for some commonly used genomes like "hg38"}
+\item{genome_name}{The name of the genome, can be abbreviations for some
+commonly used genomes like "hg38"}
 }
 \value{
 A BSgenome object

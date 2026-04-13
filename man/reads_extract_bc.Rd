@@ -15,8 +15,8 @@ reads_extract_bc(
   protocol = "10X",
   minimap_bed_path = NULL,
   work_dir = "./",
-  window = 10,
-  step = 2,
+  window = NULL,
+  step = NULL,
   left_flank = 0,
   right_flank = 0,
   drop_adapter = FALSE,
@@ -59,13 +59,16 @@ reads_extract_bc(
 
 \item{genome_path}{The filename of the reference genome}
 
-\item{toolkit}{The kit to build the library, should be 5 or 3}
+\item{toolkit}{The kit to build the library, should be 5, 3, or "3lax" (10X 3-prime with
+shortened 8 bp adapter "GCGTCGTG", window = 6, step = 1)}
 
 \item{work_dir}{The folder to store intermediate files and output}
 
-\item{window}{The window size to search the substring of adapter in the read}
+\item{window}{The window size to search the substring of adapter in the read.
+Defaults to 6 for toolkit "3lax", 10 otherwise.}
 
-\item{step}{The step size to search the substring of adapter in the read}
+\item{step}{The step size to search the substring of adapter in the read.
+Defaults to 1 for toolkit "3lax", 2 otherwise.}
 
 \item{left_flank, right_flank}{The length of the left/right part aside the adapter to be extracted}
 
@@ -96,7 +99,7 @@ candidate barcodes.}
 
 \item{alpha}{The size of the confidence interval for the start position of cell barcode alignment}
 
-\item{edit_thresh}{The maximum threshold for the edit distance of the barcode alignment, alighment with
+\item{edit_thresh}{The maximum threshold for the edit distance of the barcode alignment, alignment with
 edit distance over the threshold would be filtered out.}
 
 \item{minimap2}{The path of the minimap2}
@@ -117,7 +120,7 @@ edit distance over the threshold would be filtered out.}
 
 \item{force_isoform_extract}{flag to force to redo the isoform extraction step}
 
-\item{cores}{The number of cores to use for parallization}
+\item{cores}{The number of cores to use for parallelization}
 }
 \value{
 A list with two dataframes: the first one records the barcode, UMI and isoform information

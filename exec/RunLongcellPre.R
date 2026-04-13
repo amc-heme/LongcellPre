@@ -56,8 +56,8 @@ argparse = function(){
   if (full_help | !help){
     ### Unnecessary parameters
     ##### tag extraction
-    p$add_argument("--window", help="The kmer size used to search for adapter sequence", default = 10,type = "integer")
-    p$add_argument("--step", help="The step size when search the adapter in kmer way", default = 2,type = "integer")
+    p$add_argument("--window", help="The kmer size used to search for adapter sequence. Defaults to 6 for toolkit 3lax, 10 otherwise.", type = "integer")
+    p$add_argument("--step", help="The step size when search the adapter in kmer way. Defaults to 1 for toolkit 3lax, 2 otherwise.", type = "integer")
     p$add_argument("--left_flank", help="After the adapter is found, the length of the left flank sequence to be preserved", type = "integer")
     p$add_argument("--right_flank", help="After the adapter is found, the length of the right flank sequence to be preserved", type = "integer")
     p$add_argument("--drop_adapter", help="After the adapter is found, the molecular tag aside the adapter would be extracted and returned. In this step, 'drop_adapter' indicates

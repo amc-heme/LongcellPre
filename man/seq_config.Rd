@@ -18,7 +18,7 @@ seq_config(
 \arguments{
 \item{protocol}{The sequence protocol}
 
-\item{toolkit}{The kit to build the library, should be 5 or 3}
+\item{toolkit}{The kit to build the library, should be 5, 3, or "3lax"}
 
 \item{adapter}{The sequence of the adapter which is aside the cell barcode}
 

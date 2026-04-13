@@ -11,8 +11,8 @@ extractTagBc(
   toolkit,
   protocol = "10X",
   adapter = NULL,
-  window = 10,
-  step = 2,
+  window = NULL,
+  step = NULL,
   left_flank = 0,
   right_flank = 0,
   drop_adapter = FALSE,
@@ -31,6 +31,7 @@ extractTagBc(
   mean_edit_thresh = 1.5,
   UMI_len = 10,
   UMI_flank = 1,
+  fastq_batch = 10000000L,
   cores = 1
 )
 }
@@ -41,13 +42,16 @@ extractTagBc(
 
 \item{out_name}{The path for the polished fastq}
 
-\item{toolkit}{The kit to build the library, should be 5 or 3}
+\item{toolkit}{The kit to build the library, should be 5, 3, or "3lax" (10X 3-prime with
+shortened 8 bp adapter "GCGTCGTG", window = 6, step = 1)}
 
 \item{adapter}{The sequence of the adapter which is aside the cell barcode}
 
-\item{window}{The window size to search the substring of adapter in the read}
+\item{window}{The window size to search the substring of adapter in the read.
+Defaults to 6 for toolkit "3lax", 10 otherwise.}
 
-\item{step}{The step size to search the substring of adapter in the read}
+\item{step}{The step size to search the substring of adapter in the read.
+Defaults to 1 for toolkit "3lax", 2 otherwise.}
 
 \item{left_flank, right_flank}{The length of the left/right part aside the adapter to be extracted}
 
@@ -78,17 +82,23 @@ candidate barcodes.}
 
 \item{alpha}{The size of the confidence interval for the start position of cell barcode alignment}
 
-\item{edit_thresh}{The maximum threshold for the edit distance of the barcode alignment, alighment with
+\item{edit_thresh}{The maximum threshold for the edit distance of the barcode alignment, alignment with
 edit distance over the threshold would be filtered out.}
 
-\item{cores}{The number of cores to use for parallization}
+\item{fastq_batch}{The number of reads per FASTQ chunk when splitting for parallel tag extraction.
+Defaults to 10000000L. Set to cores * fastq_batch >= total_reads to minimise I/O round trips.}
+
+\item{cores}{The number of cores to use for parallelization}
 
 \item{flank}{The length of flank when extract UMI, which is used to be tolerant of indels and dels.}
 }
 \description{
-Extract the tag region and identify cell barcode in the ta region
+Extract the tag region and identify cell barcode in the tag region
 }
 \details{
-Extract the tag region for each reads and trim the tag region out to generate a
-polished read. Then the tag region is used to identify cell barcode an UMI.
+Extract the tag region for each read and trim it out to generate a polished read.
+Then the tag region is used to identify cell barcode and UMI.
+When cores > 1 the input FASTQ is split into chunks via \code{fastqSplit}, each chunk is
+processed in parallel via \code{future_lapply}, and the polished FASTQs are concatenated
+with \code{cat} before the barcode-matching step.
 }

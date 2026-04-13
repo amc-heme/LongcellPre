@@ -60,5 +60,6 @@ BarcodeMatch with parallelization
 }
 \details{
 BarcodeMatch for large dataset which is paralleled by future.apply.
-Large data will be split according to cores.
+Large data will be split according to cores. The barcode k-mer index is built
+once before the parallel loop and passed to each worker to avoid redundant work.
 }

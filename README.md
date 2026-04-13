@@ -32,8 +32,8 @@ options:
                         The path for the input fastq file
   -b BARCODE, --barcode BARCODE
                         The path for the cell barcode whitelist
-  -t {5,3}, --toolkit {5,3}
-                        The toolkit used in sequencing, should be 5 or 3
+  -t {5,3,3lax}, --toolkit {5,3,3lax}
+                        The toolkit used in sequencing, should be 5, 3, or 3lax
   -q {10X,VISIUM,Curio,other}, --protocol {10X,VISIUM,Curio,other}
                         The sequencing protocol, ex. '10X', 'VISIUM', 'Curio'
   -g GENOME_PATH, --genome_path GENOME_PATH
