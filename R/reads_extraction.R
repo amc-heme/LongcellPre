@@ -31,11 +31,11 @@ readBam = function(bamFile,chr,start,end, strand, map_qual = 30){
 
   if(strand == "+"){
     param <- ScanBamParam(mapqFilter = map_qual,flag=scanBamFlag(isUnmappedQuery=FALSE,isMinusStrand = FALSE),
-                          what = c('qname','pos',"cigar","seq"),which = gr)
+                          what = c('qname','pos',"cigar"),which = gr)
   }
   else if(strand == "-"){
     param <- ScanBamParam(mapqFilter = map_qual,flag=scanBamFlag(isUnmappedQuery=FALSE,isMinusStrand = TRUE),
-                          what = c('qname','pos',"cigar","seq"),which = gr)
+                          what = c('qname','pos',"cigar"),which = gr)
   }
 
   aln <- scanBam(bamFile, param = param)
@@ -125,12 +125,10 @@ gene_reads_extraction = function(bamFile,gene_bed,genome,
   #end_time <- Sys.time()
   #print(paste("readbam:",end_time - start_time))
 
-  #cat("There are ",length(as.character(bam$seq))," sequence mapped!\n")
-
   #start_time <- Sys.time()
   # normalise toolkit to integer for the C++ layer (must be 3 or 5)
   toolkit = if(toolkit == "3lax") 3L else as.integer(toolkit)
-  reads = extractReads(as.character(bam$seq),bam$cigar,bam$pos,
+  reads = extractReads(bam$cigar,bam$pos,
                        exon_bin,strand,toolkit,
                        end_flank,splice_site_bin)
   #end_time <- Sys.time()
